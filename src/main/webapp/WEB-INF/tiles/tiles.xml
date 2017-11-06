@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE tiles-definitions PUBLIC
+       "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN"
+       "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<tiles-definitions>
+
+	<!-- Templates -->
+
+	<definition name="baseLayout" template="/WEB-INF/tiles/layout/basic.jsp">
+		<put-attribute name="title" value="Flying Basket" />
+		<put-attribute name="header" value="/WEB-INF/tiles/view/header.jsp" />
+		<put-attribute name="leftmenu" value="/WEB-INF/tiles/view/leftmenu.jsp" />
+		<put-attribute name="body" value="" />
+		<put-attribute name="footer" value="/WEB-INF/tiles/view/footer.jsp" />
+	</definition>
+
+	
+	<definition name="profile" template="/WEB-INF/tiles/view/profile.jsp"/>
+	<definition name="loginpage" template="/WEB-INF/tiles/view/login.jsp">
+		<put-attribute name="title" value="Flying Basket" />
+	</definition>
+	<definition name="forgotPassword" template="/WEB-INF/tiles/view/forgotPassword.jsp">
+		<put-attribute name="title" value="Flying Basket" />
+	</definition>
+	<definition name="accessDenied" template="/WEB-INF/tiles/view/accessdenied.jsp">
+		<put-attribute name="title" value="Flying Basket" />
+	</definition>
+	<definition name="invalidSession" template="/WEB-INF/tiles/view/invalidsession.jsp">
+		<put-attribute name="title" value="Flying Basket" />
+	</definition>
+	
+	<definition name="manageuser" extends="baseLayout">
+		<put-attribute name="body" value="/WEB-INF/tiles/view/manageuser.jsp" />
+	</definition>
+	<definition name="manageorganization" extends="baseLayout">
+		<put-attribute name="body" value="/WEB-INF/tiles/view/manageorganization.jsp" />
+	</definition>
+	
+	<definition name="manageusergroup" extends="baseLayout">
+		<put-attribute name="body"	value="/WEB-INF/tiles/view/manageusergroup.jsp" />
+	</definition>
+	
+	<definition name="edituser" extends="baseLayout">
+		<put-attribute name="body" value="/WEB-INF/tiles/view/edituser.jsp" />
+		<put-attribute name="leftmenu" value="" />
+	</definition>
+	<definition name="manageorder" extends="baseLayout">
+		<put-attribute name="body" value="/WEB-INF/tiles/view/manageorder.jsp" />
+		<put-attribute name="leftmenu" value="" />
+	</definition>
+	<definition name="allproducts" template="/WEB-INF/tiles/view/allproducts.jsp" />
+	<definition name="adduser" template="/WEB-INF/tiles/view/adduser.jsp" />
+	<definition name="chaintree" extends="baseLayout">
+		<put-attribute name="body" value="/WEB-INF/tiles/view/chaintree.jsp" />
+		<put-attribute name="leftmenu" value="" />
+	</definition>
+</tiles-definitions>
