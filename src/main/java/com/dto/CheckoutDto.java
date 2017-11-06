@@ -19,6 +19,7 @@ public class CheckoutDto {
 	private String emailId;
 	@NotNull
 	private Double amount;
+	private Double usedWallet;
 	@NotNull
 	private Double shipping;
 	private String date;
@@ -139,10 +140,20 @@ public class CheckoutDto {
 		this.id = id;
 	}
 
+	public Double getUsedWallet() {
+		return usedWallet;
+	}
+
+
+	public void setUsedWallet(Double usedWallet) {
+		this.usedWallet = usedWallet;
+	}
+
 
 	@Override
 	public String toString() {
-		return "CheckoutDto [address=" + address + ", mobileNum=" + mobileNum + ", name=" + name + ", emailId="
-				+ emailId + ", amount=" + amount + ", date=" + date + ", payMode=" + payMode + ", data=" + data + "]";
+		return "CheckoutDto [id=" + id + ", address=" + address + ", mobileNum=" + mobileNum + ", name=" + name
+				+ ", emailId=" + emailId + ", amount=" + amount + ", usedWallet=" + usedWallet + ", shipping="
+				+ shipping + ", date=" + date + ", payMode=" + payMode + ", status=" + status + ", data=" + data + "]";
 	}
 }

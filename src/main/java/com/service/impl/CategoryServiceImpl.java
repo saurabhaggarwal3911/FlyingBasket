@@ -10,10 +10,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dto.BannerInfoDto;
 import com.dto.CategoryDto;
 import com.dto.DashboardDto;
+import com.entity.BannerInfoEntity;
 import com.entity.CategoryEntity;
 import com.entity.SubCategoryEntity;
+import com.repository.BannerInfoRepository;
 import com.repository.CategoryRepository;
 import com.service.ICateogyService;
 
@@ -25,6 +28,8 @@ public class CategoryServiceImpl implements ICateogyService {
 	
 	@Autowired
 	private CategoryRepository categoryRepository;
+	@Autowired
+	private BannerInfoRepository bannerInfoRepository;
 	
 	final DateFormat df = new SimpleDateFormat("dd/MM/yyyy HH:mm");
 
@@ -43,6 +48,16 @@ public class CategoryServiceImpl implements ICateogyService {
 			}
 			dashboardDto.setProductDtoList(productDtoList);
 		}*/
+		List<BannerInfoEntity> bannerInfoEntityList = bannerInfoRepository.findAllByActive(true);
+		if(bannerInfoEntityList != null && !bannerInfoEntityList.isEmpty()){
+			List<BannerInfoDto> bannerInfoDtoList = new ArrayList<>();
+			for (BannerInfoEntity bannerInfoEntity : bannerInfoEntityList) {
+				BannerInfoDto bannerInfoDto = new BannerInfoDto();
+				BeanUtils.copyProperties(bannerInfoEntity, bannerInfoDto);
+				bannerInfoDtoList.add(bannerInfoDto);
+			}
+			dashboardDto.setBannerDtoList(bannerInfoDtoList);
+		}
 		List<CategoryEntity> categoryEntityList = categoryRepository.findAllByActive(true);
 		if(categoryEntityList != null && !categoryEntityList.isEmpty()){
 			List<CategoryDto> categoryDtoList = new ArrayList<>();

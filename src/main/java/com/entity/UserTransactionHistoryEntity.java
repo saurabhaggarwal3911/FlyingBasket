@@ -23,6 +23,9 @@ public class UserTransactionHistoryEntity extends WorkspaceBaseEntity {
 	 */
 	private int id;
 	private Double amount;
+	private Double usedWallet;
+	private Double cashbackAllowed;
+	private Double shippingCost;
 	private String payMode;
 	private String billName;
 	private String billMobile;
@@ -125,6 +128,27 @@ public class UserTransactionHistoryEntity extends WorkspaceBaseEntity {
 
 	public void setUserId(Integer userId) {
 		this.userId = userId;
+	}
+    @Column(name = "price", nullable = false, columnDefinition="Decimal(10,2) default '00.00'")
+	public Double getUsedWallet() {
+		return usedWallet;
+	}
+	public void setUsedWallet(Double usedWallet) {
+		this.usedWallet = usedWallet;
+	}
+    @Column(name = "allowed_cashback", nullable = false, columnDefinition="Decimal(10,2) default '00.00'")
+	public Double getCashbackAllowed() {
+		return cashbackAllowed;
+	}
+	public void setCashbackAllowed(Double cashbackAllowed) {
+		this.cashbackAllowed = cashbackAllowed;
+	}
+    @Column(name = "shipping_cost", nullable = false, columnDefinition="Decimal(10,2) default '00.00'")
+	public Double getShippingCost() {
+		return shippingCost;
+	}
+	public void setShippingCost(Double shippingCost) {
+		this.shippingCost = shippingCost;
 	}
 //	@ManyToOne(cascade = CascadeType.ALL,fetch = FetchType.LAZY)
 //	@JoinTable(

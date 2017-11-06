@@ -374,12 +374,12 @@ public class ProductServiceImpl implements IProductService {
 
 	@Override
 	@Transactional(value = "transactionManager")
-	public boolean checkoutCart(CurrentUserDto currentUserDto, CheckoutDto cart, List<FieldErrorDTO> fieldErrorDTOs) throws InsertUserException, DataNotExistException {
+	public boolean checkoutCart(CurrentUserDto currentUserDto, final CheckoutDto cart, List<FieldErrorDTO> fieldErrorDTOs) throws InsertUserException, DataNotExistException {
 		UserEntity userEntity = userEntityRepository.findOne(currentUserDto.getId());
 		if(userEntity == null){
 			throw new DataNotExistException("User not found. Please login again");
 		}
-		fieldErrorDTOs = validateCheckoutData(cart, fieldErrorDTOs);
+		fieldErrorDTOs = validateCheckoutData(userEntity, cart, fieldErrorDTOs);
 		if(fieldErrorDTOs != null && !fieldErrorDTOs.isEmpty() && fieldErrorDTOs.size() >0){
 			return false;
 		}
@@ -416,14 +416,41 @@ public class ProductServiceImpl implements IProductService {
 			userTransactionHistoryEntity.setBillMobile(cart.getMobileNum() != null?cart.getMobileNum() : userEntity.getMobile());
 			userTransactionHistoryEntity.setBillName(cart.getName() != null ?cart.getName() : userEntity.getName());
 			userTransactionHistoryEntity.setBillEmail(cart.getEmailId() != null ?cart.getEmailId() : userEntity.getUsername());
-			userTransactionHistoryEntity.setPayMode("Cash On Delivery");
+			if(cart.getUsedWallet() != null && cart.getUsedWallet() >0){
+				userTransactionHistoryEntity.setPayMode("Cash On Delivery + wallet used");
+				userTransactionHistoryEntity.setUsedWallet(cart.getUsedWallet());
+			}else{
+				userTransactionHistoryEntity.setPayMode("Cash On Delivery");
+			}
+			userTransactionHistoryEntity.setCashbackAllowed(cashbackAmount);
+			if(cart.getShipping() != null){
+				userTransactionHistoryEntity.setShippingCost(cart.getShipping());
+			}
 			userTransactionHistoryEntity.setStatus("pending");
 			userTransactionHistoryEntity.setUserId(userEntity.getId());
 			userTransactionHistoryEntity.setUserProductTransacationDetailList(userProductTransacationDetailEntityList);
 			userTransactionHistoryRepository.save(userTransactionHistoryEntity);
 				
-			final String mobileNumber=cart.getMobileNum() != null?cart.getMobileNum() : userEntity.getMobile();
 			final int orderTransactionId = userTransactionHistoryEntity.getId();
+			// remove wallet amount
+			 if(cart.getUsedWallet() != null && cart.getUsedWallet() >0 && userEntity.getWallet()!= null){
+				 WalletEntity wallet = userEntity.getWallet();
+				 wallet.setValid(true);
+				 wallet.setAmount(wallet.getAmount()- cart.getUsedWallet());
+				 wallet.setRemarks(cart.getUsedWallet()+" wallet used for order "+orderTransactionId);
+				 walletEntityRepository.saveAndFlush(wallet);
+				
+				 WalletHistoryEntity walletHistoryEntity = new WalletHistoryEntity();
+				 walletHistoryEntity.setAmount(cart.getUsedWallet());
+				 walletHistoryEntity.setRemarks(cart.getUsedWallet()+" wallet used for order "+orderTransactionId);
+				 walletHistoryEntity.setCredit(false);
+				 walletHistoryEntity.setWallet(wallet);
+				 walletHistoryEntity.setValid(true);
+				 walletHistoryEntityRepository.save(walletHistoryEntity);
+			 }
+			 
+			
+			final String mobileNumber=cart.getMobileNum() != null?cart.getMobileNum() : userEntity.getMobile();
 			if(userEntity.getReferenceCode() == null){
 				String referralCode = null;
 				 long countByReferenceCode = 1;
@@ -433,6 +460,8 @@ public class ProductServiceImpl implements IProductService {
 				 }
 				 userEntity.setReferenceCode(referralCode);
 				 userEntityRepository.saveAndFlush(userEntity);
+				 
+				 
 				 final String referralCode1 = referralCode;
 				 Thread t1 = new Thread(new Runnable() {
 
@@ -476,6 +505,18 @@ public class ProductServiceImpl implements IProductService {
                     } catch (IOException e) {
                         LOGGER.error(e);
                     }
+                	
+                	EmailDto emailDto = new EmailDto();
+    				emailDto.setTo(new String[]{"info@flyingbasket.in"});
+    				emailDto.setBcc(new String[]{"saurabhaggarwal05@gmail.com"});
+    				emailDto.setMailBody(" orderTransactionId:-"+orderTransactionId+", with cart:-"+cart);
+    				emailDto.setSubject("order in flyingbasket with orderId:-"+orderTransactionId);
+    				try {
+    					emailService.sendMail(emailDto);
+    				} catch (MessagingException e1) {
+    					 
+    					LOGGER.error(e1.getMessage(), e1);
+    				}
                     
                 }
             });
@@ -485,9 +526,17 @@ public class ProductServiceImpl implements IProductService {
 		return false;
 	}
 	@Transactional(value = "transactionManager")
-	private List<FieldErrorDTO> validateCheckoutData(CheckoutDto cart, List<FieldErrorDTO> fieldErrorDTOs) {
+	private List<FieldErrorDTO> validateCheckoutData(UserEntity userEntity, CheckoutDto cart, List<FieldErrorDTO> fieldErrorDTOs) {
 		double totalCheckoutAmount = cart.getShipping();
 		List<PurchasedItemDto> items = cart.getData();
+		Double usedWallet = cart.getUsedWallet()!=null?cart.getUsedWallet():0;
+		double userWallet =userEntity.getWallet()!=null?userEntity.getWallet().getAmount():0;
+		
+		if(usedWallet-userWallet >0){
+			FieldErrorDTO error = new FieldErrorDTO("checkoutDto.usedWallet", messageSource.getMessage("usedWallet.notenough", null, Locale.ENGLISH));
+			fieldErrorDTOs.add(error);
+			return fieldErrorDTOs;
+		}
 		if(items != null && !items.isEmpty()){
 			for (int i=0; i< items.size(); i++) {
 				PurchasedItemDto purchasedItemDto =items.get(i);
@@ -498,7 +547,7 @@ public class ProductServiceImpl implements IProductService {
 						fieldErrorDTOs.add(error);
 						return fieldErrorDTOs;
 					}
-					if(purchasedItemDto.getPrice()* purchasedItemDto.getQty() -purchasedItemDto.getTotal() != 0){
+					if(purchasedItemDto.getPrice()*purchasedItemDto.getQty() -purchasedItemDto.getTotal() != 0){
 						FieldErrorDTO error = new FieldErrorDTO("checkoutDto.data["+i+"].price", messageSource.getMessage("totalprice.different", null, Locale.ENGLISH));
 						FieldErrorDTO error1 = new FieldErrorDTO("checkoutDto.data["+i+"].total", messageSource.getMessage("totalprice.different", null, Locale.ENGLISH));
 						fieldErrorDTOs.add(error);
@@ -523,6 +572,7 @@ public class ProductServiceImpl implements IProductService {
 					return fieldErrorDTOs;
 				}
 			}
+			totalCheckoutAmount = totalCheckoutAmount - usedWallet;
 			if(totalCheckoutAmount - cart.getAmount() != 0){
 				FieldErrorDTO error = new FieldErrorDTO("total", messageSource.getMessage("checkoutDto.total.incorrect", null, Locale.ENGLISH));
 				fieldErrorDTOs.add(error);
@@ -537,16 +587,17 @@ public class ProductServiceImpl implements IProductService {
 		if(referenceBy != null && referenceBy >0){
 			int referenceBy1 =referenceBy;
 			double cashbackAmountTotalShare =cashbackAmountTotal;
-			long countByReferenceBy = userEntityRepository.countByReferenceByAndReferralCodeIsNotNull(referenceBy1);
-			while(countByReferenceBy >= 10 && cashbackAmountTotalShare > 0.01){
+//			long countByReferenceBy = userEntityRepository.countByReferenceByAndReferralCodeIsNotNull(referenceBy1);
+//			while(countByReferenceBy >= 10 && cashbackAmountTotalShare > 0.01){
+			while( cashbackAmountTotalShare > 0.01){
              	UserEntity user = userEntityRepository.findById(referenceBy);
              	WalletEntity wallet2 = user.getWallet();
              	boolean isNewWallet = false;
              	if(wallet2 == null){
              		wallet2 = new WalletEntity();
              		wallet2.setValid(true);
-             		wallet2.setAmount(100d);
-             		wallet2.setRemarks("by welcome 100 offer and cashbackAmountTotal of"+cashbackAmountTotalShare);
+             		wallet2.setAmount(500d);
+             		wallet2.setRemarks("by welcome 500 offer and cashbackAmountTotal of"+cashbackAmountTotalShare);
              		isNewWallet = true;
              	}
              	wallet2.setAmount(wallet2.getAmount()+ cashbackAmountTotalShare);
@@ -567,8 +618,8 @@ public class ProductServiceImpl implements IProductService {
 //             	}
              	if(isNewWallet){
              		WalletHistoryEntity walletHistoryEntity = new WalletHistoryEntity();
-             		walletHistoryEntity.setAmount(100d);
-             		walletHistoryEntity.setRemarks("by welcome 1000 offer");
+             		walletHistoryEntity.setAmount(500d);
+             		walletHistoryEntity.setRemarks("by welcome 500 offer");
              		walletHistoryEntity.setCredit(true);
              		walletHistoryEntity.setWallet(wallet2);
              		walletHistoryEntity.setValid(true);
@@ -592,9 +643,9 @@ public class ProductServiceImpl implements IProductService {
              	cashbackAmountTotalShare = cashbackAmountTotalShare*0.05  ;
              	if(user.getReferenceBy() != null && user.getReferenceBy() !=0 && cashbackAmountTotalShare >0.01){
              		referenceBy1 = user.getReferenceBy();
-             		countByReferenceBy = userEntityRepository.countByReferenceByAndReferralCodeIsNotNull(referenceBy1);
+//             		countByReferenceBy = userEntityRepository.countByReferenceByAndReferralCodeIsNotNull(referenceBy1);
              	}else{
-             		countByReferenceBy = 0;
+//             		countByReferenceBy = 0;
              	}
              }
 		}

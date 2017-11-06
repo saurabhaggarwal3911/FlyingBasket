@@ -30,6 +30,8 @@ import com.dto.UserProfileDto;
 import com.entity.UserEntity;
 import com.entity.UserProductTransacationDetailEntity;
 import com.entity.UserTransactionHistoryEntity;
+import com.entity.WalletEntity;
+import com.entity.WalletHistoryEntity;
 import com.entity.WorkspaceEntity;
 import com.exception.DataNotExistException;
 import com.exception.UserAlreadyExistException;
@@ -39,6 +41,8 @@ import com.exception.UserMobileAlreadyExistException;
 import com.repository.ClientRepository;
 import com.repository.RoleEntityRepository;
 import com.repository.UserEntityRepository;
+import com.repository.WalletEntityRepository;
+import com.repository.WalletHistoryEntityRepository;
 import com.repository.WorkspaceRepositiry;
 import com.service.IEmailService;
 import com.service.ISmsService;
@@ -70,6 +74,10 @@ public class UserEntityServiceImpl implements IUserEntityService {
 	private ISmsService smsService;
 	@Autowired
 	private ApplicationConfigurationRepository applicationConfigurationDao;
+	@Autowired
+	private WalletEntityRepository walletEntityRepository;
+	@Autowired
+	private WalletHistoryEntityRepository walletHistoryEntityRepository;
 
 
 	@Transactional(timeout = 100000, value = "transactionManager")
@@ -677,7 +685,38 @@ public class UserEntityServiceImpl implements IUserEntityService {
 		userEntity.setReferenceCode(referralCode);
 //		final String userReferralCode = referralCode;
 		*/
-		userEntityRepository.saveAndFlush(userEntity);
+		
+		WalletEntity wallet2 = userEntity.getWallet();
+     	boolean isNewWallet = false;
+     	if(wallet2 == null){
+     		wallet2 = new WalletEntity();
+     		wallet2.setValid(true);
+     		wallet2.setAmount(500d);
+     		wallet2.setRemarks("by welcome 500 offer ");
+     		isNewWallet = true;
+     	}
+     	wallet2.setAmount(wallet2.getAmount());
+     	wallet2.setUserEntity(userEntity);
+     	walletEntityRepository.save(wallet2);
+     	
+     	if(userEntity.getMembershipType() == null){
+     		isNewWallet = true;
+     		userEntity.setMembershipType(ApplicationConstants.MembershipType.LOYALITY);
+     	}
+     	userEntity.setWallet(wallet2);
+     	userEntityRepository.saveAndFlush(userEntity);
+     	
+     	
+     	if(isNewWallet){
+     		WalletHistoryEntity walletHistoryEntity = new WalletHistoryEntity();
+     		walletHistoryEntity.setAmount(500d);
+     		walletHistoryEntity.setRemarks("by welcome 500 offer");
+     		walletHistoryEntity.setCredit(true);
+     		walletHistoryEntity.setWallet(wallet2);
+     		walletHistoryEntity.setValid(true);
+     		walletHistoryEntityRepository.save(walletHistoryEntity);
+     	}
+     	
 		Thread thread = new Thread(new Runnable() {
 
 		@Override
